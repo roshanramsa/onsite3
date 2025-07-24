@@ -63,18 +63,47 @@ wss.on("connection", (ws) => {
     if (message.type == "join"){
       const room = message.room;
       ws.room = room;
+      ws.id = message.id
+      
 
       if (!rooms[room]) rooms[room] = [];
       rooms[room].push(ws);
 
       if (rooms[room]?.length == 2){
+        var users = [];
+        rooms[room]?.forEach(member => {
+          users.push(member.id)
+        })
         rooms[room]?.forEach(member => {
           if (member.readyState == WebSocket.OPEN){
-            member.send(JSON.stringify({type: "started"}))
+            member.send(JSON.stringify({type: "started", users: users, started: users[Math.floor(Math.random()*users.length)]}))
           }
         })
       }
     }
+
+
+    if (message.type == "update"){
+      rooms[ws.room].forEach(client => {
+        if (client != ws){
+          client.send(JSON.stringify({type: "update", positions: message.positions, turn: message.turn}))
+        }
+      })
+    }
+    if (message.type == "pos"){
+      rooms[ws.room].forEach(client => {
+        if (client != ws){
+          client.send(JSON.stringify({type: "pos", positions: message.positions}))
+        }
+      })
+    }
+
+    if (message.type == "over"){
+      rooms[ws.room].forEach(client => {
+        client.send(JSON.stringify({type: "over"}))
+      })
+    }
+
   })
 
   ws.on('close', () => {
